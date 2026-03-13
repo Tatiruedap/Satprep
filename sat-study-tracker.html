@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAT Study Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F4EF;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE7;
+    --border: #E4DDD3;
+    --text: #1A1612;
+    --text-2: #6B6560;
+    --text-3: #A39D97;
+    --accent: #C4522A;
+    --accent-light: #F5E8E2;
+    --accent-2: #2A7C6F;
+    --accent-2-light: #E2F0ED;
+    --math-color: #2A5FA8;
+    --math-light: #E2EAF5;
+    --rw-color: #7A3FA0;
+    --rw-light: #EFE5F8;
+    --sat-color: #C4522A;
+    --sat-light: #F5E8E2;
+    --review-color: #2A7C6F;
+    --review-light: #E2F0ED;
+    --radius: 12px;
+    --radius-lg: 18px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    color: var(--text);
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .overall-pill {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+
+  .overall-pill .pill-bar {
+    width: 80px;
+    height: 5px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .overall-pill .pill-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .overall-pill .pill-pct { color: var(--accent); font-weight: 600; }
+
+  /* ---- WEEK NAV ---- */
+  .week-nav-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .week-nav-wrap::-webkit-scrollbar { display: none; }
+
+  .week-nav {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+    min-width: max-content;
+  }
+
+  .week-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+
+  .week-btn:hover { background: var(--surface2); color: var(--text); }
+
+  .week-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .week-btn .week-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    display: none;
+  }
+
+  .week-btn.has-progress .week-dot { display: block; }
+  .week-btn.active .week-dot { background: rgba(255,255,255,0.7); }
+
+  /* ---- MAIN LAYOUT ---- */
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+  }
+
+  /* ---- WEEK HEADER ---- */
+  .week-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .week-title-block {}
+
+  .week-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+
+  .week-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  /* Progress summary */
+  .progress-summary {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-2);
+    text-align: center;
+  }
+
+  .stat-chip strong { display: block; font-size: 1.4rem; color: var(--text); font-family: 'DM Serif Display', serif; line-height: 1; margin-bottom: 2px; }
+
+  /* ---- PROGRESS BAR ---- */
+  .week-progress-bar-wrap {
+    margin-bottom: 28px;
+  }
+
+  .progress-bar-track {
+    height: 8px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #E07045);
+    border-radius: 99px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    min-width: 0;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-3);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .progress-label .pct { color: var(--accent); font-weight: 600; }
+
+  /* ---- DAYS GRID ---- */
+  .days-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .day-card:hover { box-shadow: var(--shadow-md); }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .day-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .badge-math { background: var(--math-light); color: var(--math-color); }
+  .badge-rw { background: var(--rw-light); color: var(--rw-color); }
+  .badge-sat { background: var(--sat-light); color: var(--sat-color); }
+  .badge-review { background: var(--review-light); color: var(--review-color); }
+
+  .day-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  /* ---- CHECKBOX TASK ---- */
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--surface2);
+  }
+
+  .task-item:first-child { border-top: none; }
+
+  .task-check {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.15s ease;
+    position: relative;
+    background: var(--bg);
+  }
+
+  .task-check:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .task-check:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 6px;
+    height: 10px;
+    border: 2px solid white;
+    border-left: none;
+    border-top: none;
+    transform: rotate(45deg);
+  }
+
+  .task-label {
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1.5;
+  }
+
+  .task-item.completed .task-label {
+    text-decoration: line-through;
+    color: var(--text-3);
+  }
+
+  /* ---- SAT / REVIEW SATURDAY ---- */
+  .saturday-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .saturday-banner {
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sat-banner { background: linear-gradient(135deg, #FDF0EB, #FAE4DA); border-bottom: 1px solid #F0CFC0; }
+  .review-banner { background: linear-gradient(135deg, #EAF4F1, #D6ECE7); border-bottom: 1px solid #B8DEDA; }
+
+  .saturday-banner-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .sat-icon { background: var(--sat-light); }
+  .review-icon { background: var(--review-light); }
+
+  .saturday-banner-text h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .saturday-banner-text p {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    margin-top: 1px;
+  }
+
+  .saturday-body { padding: 20px 24px; }
+
+  .sat-main-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--surface2);
+    margin-bottom: 16px;
+  }
+
+  .sat-main-check label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  /* Score fields */
+  .score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 560px) {
+    .score-grid { grid-template-columns: 1fr; }
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+
+  .field-group label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .field-group input,
+  .field-group textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text);
+    transition: border-color 0.15s ease;
+    resize: none;
+    width: 100%;
+  }
+
+  .field-group input:focus,
+  .field-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+
+  .reflection-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .section-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 10px;
+    margin-top: 4px;
+  }
+
+  /* ---- OVERALL PROGRESS SECTION ---- */
+  .overall-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow);
+  }
+
+  .overall-section h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .mini-weeks-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  @media (max-width: 560px) {
+    .mini-weeks-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .mini-week-cell {
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .mini-week-cell:hover { transform: translateY(-1px); }
+
+  .mini-week-cell .mini-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+
+  .mini-week-cell .mini-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .mini-week-cell .mini-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  .mini-week-cell .mini-pct {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-2);
+  }
+
+  /* ---- ANIMATIONS ---- */
+  .week-panel { animation: fadeSlide 0.25s ease; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 640px) {
+    .header { padding: 0 16px; gap: 12px; }
+    .week-nav-wrap { padding: 0 16px; }
+    .main { padding: 24px 14px 60px; }
+    .day-card { padding: 16px 18px; }
+    .saturday-body { padding: 16px 18px; }
+    .week-title { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">SAT <span>Tracker</span></div>
+  <div class="overall-pill">
+    <span>Overall</span>
+    <div class="pill-bar"><div class="pill-fill" id="overallBarFill" style="width:0%"></div></div>
+    <span class="pill-pct" id="overallPct">0%</span>
+  </div>
+</header>
+
+<div class="week-nav-wrap">
+  <nav class="week-nav" id="weekNav"></nav>
+</div>
+
+<main class="main" id="mainContent"></main>
+
+<script>
+// ===================== DATA =====================
+const weeks = [
+  {
+    title: "Week 1",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Solving linear equations and inequalities: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Linear equation word problems: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Command of textual evidence: foundations"] },
+      { day: "Friday", type: "rw", tasks: ["Command of quantitative evidence: foundations"] },
+      { day: "Saturday", type: "sat" }
+    ]
+  },
+  {
+    title: "Week 2",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Linear relationship word problems: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Graphs of linear equations and functions: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Central ideas and details: foundations"] },
+      { day: "Friday", type: "rw", tasks: ["Inferences: foundations"] },
+      { day: "Saturday", type: "review" }
+    ]
+  },
+  {
+    title: "Week 3",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Foundations: Algebra: Quiz 1"] },
+      { day: "Tuesday", type: "math", tasks: ["Solving systems of linear equations: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Words in context: foundations"] },
+      { day: "Friday", type: "rw", tasks: ["Text structure and purpose: foundations"] },
+      { day: "Saturday", type: "sat" }
+    ]
+  },
+  {
+    title: "Week 4",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Systems of linear equations word problems: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Linear inequality word problems: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Cross-text connections: foundations"] },
+      { day: "Friday", type: "rw", tasks: ["Transitions: foundations"] },
+      { day: "Saturday", type: "review" }
+    ]
+  },
+  {
+    title: "Week 5",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Graphs of linear systems and inequalities: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Foundations: Algebra: Quiz 2"] },
+      { day: "Wednesday", type: "rw", tasks: ["Rhetorical synthesis: foundations"] },
+      { day: "Friday", type: "rw", tasks: ["Form, structure, and sense: foundations"] },
+      { day: "Saturday", type: "sat" }
+    ]
+  },
+  {
+    title: "Week 6",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Foundations: Algebra: Unit test"] },
+      { day: "Tuesday", type: "math", tasks: ["Ratios and rates: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Boundaries: foundations"] },
+      { day: "Friday", type: "rw", tasks: ["Command of textual evidence: medium"] },
+      { day: "Saturday", type: "review" }
+    ]
+  },
+  {
+    title: "Week 7",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Percentages: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Units and conversions: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Command of quantitative evidence: medium"] },
+      { day: "Friday", type: "rw", tasks: ["Central ideas and details: medium"] },
+      { day: "Saturday", type: "sat" }
+    ]
+  },
+  {
+    title: "Week 8",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Probability: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Data interpretation: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Inferences: medium"] },
+      { day: "Friday", type: "rw", tasks: ["Words in context: medium"] },
+      { day: "Saturday", type: "review" }
+    ]
+  },
+  {
+    title: "Week 9",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Exponential functions: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Quadratic equations: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Text structure and purpose: medium"] },
+      { day: "Friday", type: "rw", tasks: ["Cross-text connections: medium"] },
+      { day: "Saturday", type: "sat" }
+    ]
+  },
+  {
+    title: "Week 10",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Factoring polynomials: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Polynomial graphs: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Transitions: medium"] },
+      { day: "Friday", type: "rw", tasks: ["Rhetorical synthesis: medium"] },
+      { day: "Saturday", type: "review" }
+    ]
+  },
+  {
+    title: "Week 11",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Triangles: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Circles: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Form, structure, and sense: medium"] },
+      { day: "Friday", type: "rw", tasks: ["Boundaries: medium"] },
+      { day: "Saturday", type: "sat" }
+    ]
+  },
+  {
+    title: "Week 12",
+    days: [
+      { day: "Monday", type: "math", tasks: ["Area and volume: foundations"] },
+      { day: "Tuesday", type: "math", tasks: ["Basic trigonometry: foundations"] },
+      { day: "Wednesday", type: "rw", tasks: ["Command of textual evidence: advanced"] },
+      { day: "Friday", type: "rw", tasks: ["Words in context: advanced"] },
+      { day: "Saturday", type: "final" }
+    ]
+  }
+];
+
+// ===================== STATE =====================
+let currentWeek = 0;
+
+function storageKey(weekIdx, key) { return `sat_w${weekIdx}_${key}`; }
+
+function getVal(weekIdx, key, def = '') {
+  return localStorage.getItem(storageKey(weekIdx, key)) ?? def;
+}
+
+function setVal(weekIdx, key, val) {
+  localStorage.setItem(storageKey(weekIdx, key), val);
+}
+
+// ===================== COUNT TASKS =====================
+function countTasksForWeek(weekIdx) {
+  const week = weeks[weekIdx];
+  let total = 0, done = 0;
+  week.days.forEach((day, di) => {
+    if (day.tasks) {
+      day.tasks.forEach((_, ti) => {
+        total++;
+        if (getVal(weekIdx, `task_${di}_${ti}`) === '1') done++;
+      });
+    }
+    if (day.type === 'sat' || day.type === 'final') {
+      total++;
+      if (getVal(weekIdx, 'sat_done') === '1') done++;
+    }
+    if (day.type === 'review') {
+      total++;
+      if (getVal(weekIdx, 'review_done') === '1') done++;
+    }
+  });
+  return { total, done };
+}
+
+function getWeekPct(weekIdx) {
+  const { total, done } = countTasksForWeek(weekIdx);
+  return total === 0 ? 0 : Math.round((done / total) * 100);
+}
+
+function getOverallPct() {
+  let total = 0, done = 0;
+  weeks.forEach((_, i) => {
+    const c = countTasksForWeek(i);
+    total += c.total;
+    done += c.done;
+  });
+  return total === 0 ? 0 : Math.round((done / total) * 100);
+}
+
+// ===================== RENDER =====================
+function renderNav() {
+  const nav = document.getElementById('weekNav');
+  nav.innerHTML = '';
+  weeks.forEach((w, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'week-btn' + (i === currentWeek ? ' active' : '');
+    const pct = getWeekPct(i);
+    if (pct > 0 && i !== currentWeek) btn.classList.add('has-progress');
+    btn.innerHTML = `W${i+1} <span class="week-dot"></span>`;
+    btn.title = w.title;
+    btn.onclick = () => { currentWeek = i; render(); };
+    nav.appendChild(btn);
+  });
+}
+
+function renderOverall() {
+  const pct = getOverallPct();
+  document.getElementById('overallBarFill').style.width = pct + '%';
+  document.getElementById('overallPct').textContent = pct + '%';
+}
+
+function renderWeek(weekIdx) {
+  const week = weeks[weekIdx];
+  const { total, done } = countTasksForWeek(weekIdx);
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const remaining = total - done;
+
+  let html = `<div class="week-panel">`;
+
+  // Header
+  html += `
+  <div class="week-header">
+    <div class="week-title-block">
+      <div class="week-label">12-Week SAT Plan</div>
+      <div class="week-title">${week.title}</div>
+    </div>
+    <div class="progress-summary">
+      <div class="stat-chip"><strong>${done}</strong>done</div>
+      <div class="stat-chip"><strong>${remaining}</strong>left</div>
+    </div>
+  </div>`;
+
+  // Progress bar
+  html += `
+  <div class="week-progress-bar-wrap">
+    <div class="progress-label"><span>Week Progress</span><span class="pct">${pct}%</span></div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+  </div>`;
+
+  // Days
+  html += `<div class="days-grid">`;
+
+  week.days.forEach((day, di) => {
+    if (day.type === 'sat' || day.type === 'final') {
+      // Practice Test Saturday
+      const isFinal = day.type === 'final';
+      const satDone = getVal(weekIdx, 'sat_done') === '1';
+      const score = getVal(weekIdx, 'sat_score');
+      const mathScore = getVal(weekIdx, 'sat_math');
+      const rwScore = getVal(weekIdx, 'sat_rw');
+      const notes = getVal(weekIdx, 'sat_notes');
+
+      html += `
+      <div class="saturday-card">
+        <div class="saturday-banner sat-banner">
+          <div class="saturday-banner-icon sat-icon">📝</div>
+          <div class="saturday-banner-text">
+            <h3>${isFinal ? 'Final Review Test' : 'Practice Test Saturday'}</h3>
+            <p>Saturday — Full Practice Exam</p>
+          </div>
+        </div>
+        <div class="saturday-body">
+          <div class="sat-main-check">
+            <input type="checkbox" class="task-check" id="sat_done_${weekIdx}" ${satDone ? 'checked' : ''}
+              onchange="setVal(${weekIdx},'sat_done',this.checked?'1':'0');render();">
+            <label for="sat_done_${weekIdx}" style="font-size:0.9rem;font-weight:600;cursor:pointer;">
+              ${isFinal ? 'Final Review Test Completed' : 'Practice Test Completed'}
+            </label>
+          </div>
+          <div class="score-grid">
+            <div class="field-group">
+              <label>Total Score</label>
+              <input type="text" placeholder="e.g. 1280" value="${score}"
+                oninput="setVal(${weekIdx},'sat_score',this.value)">
+            </div>
+            <div class="field-group">
+              <label>Math Score</label>
+              <input type="text" placeholder="e.g. 650" value="${mathScore}"
+                oninput="setVal(${weekIdx},'sat_math',this.value)">
+            </div>
+            <div class="field-group">
+              <label>R&W Score</label>
+              <input type="text" placeholder="e.g. 630" value="${rwScore}"
+                oninput="setVal(${weekIdx},'sat_rw',this.value)">
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Notes</label>
+            <textarea rows="3" placeholder="How did it go? What stood out?"
+              oninput="setVal(${weekIdx},'sat_notes',this.value)">${notes}</textarea>
+          </div>
+        </div>
+      </div>`;
+
+    } else if (day.type === 'review') {
+      // Review Saturday
+      const reviewDone = getVal(weekIdx, 'review_done') === '1';
+      const well = getVal(weekIdx, 'review_well');
+      const mistakes = getVal(weekIdx, 'review_mistakes');
+      const focus = getVal(weekIdx, 'review_focus');
+
+      html += `
+      <div class="saturday-card">
+        <div class="saturday-banner review-banner">
+          <div class="saturday-banner-icon review-icon">🔍</div>
+          <div class="saturday-banner-text">
+            <h3>Review Saturday</h3>
+            <p>Saturday — Test Review & Reflection</p>
+          </div>
+        </div>
+        <div class="saturday-body">
+          <div class="sat-main-check">
+            <input type="checkbox" class="task-check" id="review_done_${weekIdx}" ${reviewDone ? 'checked' : ''}
+              onchange="setVal(${weekIdx},'review_done',this.checked?'1':'0');render();">
+            <label for="review_done_${weekIdx}" style="font-size:0.9rem;font-weight:600;cursor:pointer;">Test Review Completed</label>
+          </div>
+          <div class="section-title">Reflection</div>
+          <div class="reflection-grid">
+            <div class="field-group">
+              <label>What went well?</label>
+              <textarea rows="2" placeholder="Strengths from this week..."
+                oninput="setVal(${weekIdx},'review_well',this.value)">${well}</textarea>
+            </div>
+            <div class="field-group">
+              <label>What mistakes did I make?</label>
+              <textarea rows="2" placeholder="Errors and weak spots..."
+                oninput="setVal(${weekIdx},'review_mistakes',this.value)">${mistakes}</textarea>
+            </div>
+            <div class="field-group">
+              <label>What should I focus on next week?</label>
+              <textarea rows="2" placeholder="Goals for next week..."
+                oninput="setVal(${weekIdx},'review_focus',this.value)">${focus}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    } else {
+      // Regular study day
+      const typeLabel = day.type === 'math' ? 'Math' : 'Reading & Writing';
+      const badgeClass = day.type === 'math' ? 'badge-math' : 'badge-rw';
+
+      html += `<div class="day-card">
+        <div class="day-header">
+          <span class="day-badge ${badgeClass}">${typeLabel}</span>
+          <span class="day-name">${day.day}</span>
+        </div>`;
+
+      day.tasks.forEach((task, ti) => {
+        const checked = getVal(weekIdx, `task_${di}_${ti}`) === '1';
+        const itemId = `task_${weekIdx}_${di}_${ti}`;
+        html += `
+        <div class="task-item${checked ? ' completed' : ''}" id="item_${weekIdx}_${di}_${ti}">
+          <input type="checkbox" class="task-check" id="${itemId}" ${checked ? 'checked' : ''}
+            onchange="toggleTask(${weekIdx},${di},${ti},this.checked)">
+          <label class="task-label" for="${itemId}">${task}</label>
+        </div>`;
+      });
+
+      html += `</div>`;
+    }
+  });
+
+  html += `</div></div>`;
+  return html;
+}
+
+function toggleTask(weekIdx, di, ti, checked) {
+  setVal(weekIdx, `task_${di}_${ti}`, checked ? '1' : '0');
+  // Update the item class without full re-render for smoothness
+  const item = document.getElementById(`item_${weekIdx}_${di}_${ti}`);
+  if (item) {
+    if (checked) item.classList.add('completed');
+    else item.classList.remove('completed');
+  }
+  updateProgressUI(weekIdx);
+  renderNav();
+  renderOverall();
+}
+
+function updateProgressUI(weekIdx) {
+  const { total, done } = countTasksForWeek(weekIdx);
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  const remaining = total - done;
+
+  const fill = document.querySelector('.progress-bar-fill');
+  if (fill) fill.style.width = pct + '%';
+  const pctEl = document.querySelector('.progress-label .pct');
+  if (pctEl) pctEl.textContent = pct + '%';
+
+  const chips = document.querySelectorAll('.stat-chip strong');
+  if (chips.length >= 2) { chips[0].textContent = done; chips[1].textContent = remaining; }
+}
+
+function render() {
+  renderNav();
+  renderOverall();
+  document.getElementById('mainContent').innerHTML = renderWeek(currentWeek);
+}
+
+// ===================== BOOT =====================
+render();
+</script>
+</body>
+</html>
